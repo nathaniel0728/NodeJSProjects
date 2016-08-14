@@ -1,0 +1,115 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> <!--320-->
+        <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+        <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+        <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+        <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+        <link rel="stylesheet" href="/resources/demos/style.css">
+        <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700italic,300italic,300' rel='stylesheet' type='text/css'>
+    </head>
+    <body>
+        <style>
+            html,body{
+                margin:0 auto;   
+                width:100%;
+                height:100%;
+            }
+            #stuff{
+                width:100%;
+                height:100%;
+                background-color:#CCCCCC;
+                text-align:center;
+            }
+            #stuff h1{
+                padding-top:20%;   
+            }
+            #canvas{
+                -webkit-transform-origin: 0 0;
+                border:1px solid black;   
+            }
+        </style>
+        <script>
+            $(document).ready(function(){
+                var x;
+                var y;
+                
+                $.mobile.loading().hide();
+                $("#stuff").hide();
+                var allChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+                var ranLength = 5;
+
+                var uniqueId = "";
+
+                for(var i=0; i<ranLength; i++) {
+                    uniqueId += allChars[Math.floor(Math.random() * allChars.length)];
+                }
+                
+                $("#code").html("Your unique id is " + uniqueId +", case sensitive!");
+                
+                var socket = io();
+                
+                //choose a unique ID
+                socket.emit("desktop-register", {id:uniqueId});
+                socket.on("mobile-on", function(data){
+                    $("#starter").hide();
+                    $("#stuff").show();
+                    var c=document.getElementById("canvas");
+                    var rect = c.getBoundingClientRect();
+                    var ctx=c.getContext("2d");
+                    ctx.fillRect(500, 160, 50, 50);
+                    x = 500;
+                    y = 160;
+                });
+                socket.on("display", function(data){
+                    var c=document.getElementById("canvas");
+                    var rect = c.getBoundingClientRect();
+                    var ctx=c.getContext("2d");
+                    
+                    if(data.action === "up"){
+                        if(y > 0){
+                            ctx.clearRect(0,0,c.width, c.height);
+                            y = y - 5;
+                            ctx.fillRect(x,y,50,50);
+                        }
+                    }
+                    else if(data.action === "left"){
+                        if(x > 0){
+                            ctx.clearRect(0,0,c.width, c.height);
+                            x = x - 5;
+                            ctx.fillRect(x,y,50,50);
+                        }
+                    }
+                    else if(data.action === "down"){
+                        if(y <= c.height - 50){
+                            ctx.clearRect(0,0,c.width, c.height);
+                            y = y + 5;
+                            ctx.fillRect(x,y,50,50);
+                        }
+                    }
+                    else if(data.action === "right"){
+                        if(x <= c.width - 50){
+                            ctx.clearRect(0,0,c.width, c.height);
+                            x = x + 5;
+                            ctx.fillRect(x,y,50,50);
+                        }
+                    }
+                });
+                
+            });
+        </script>
+        <div id='starter'>
+            <h1>Desktop</h1>
+            <p>To link to mobile, go to http://4fede61a.ngrok.com/mobile</p>
+            <h1 id='code'></h1>
+        </div>
+        <div id='test'></div>
+        <div id='stuff'>
+            
+            <canvas id='canvas' width='1000' height='500'>
+            </canvas>
+            
+        </div>
+    </body>
+</html>

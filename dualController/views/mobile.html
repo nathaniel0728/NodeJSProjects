@@ -1,0 +1,102 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> <!--320-->
+        <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+        <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+        <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+        <link rel="stylesheet" href="/resources/demos/style.css">
+        <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700italic,300italic,300' rel='stylesheet' type='text/css'>
+    </head>
+    <body>
+        <style>
+            html,body{
+                margin:0 auto;   
+            }
+            #control{
+                position:absolute;
+                left:0;
+                right:0;
+                top:0;
+                bottom:0;
+                height:100%;
+                width:100%;
+                background:#CCCCCC;
+                overflow:auto;
+            }
+            #buttons{
+                text-align:center;
+                height:20%;
+                border:1px solid black;
+                font-size:25px;
+            }
+        </style>
+        <script>
+            $(document).ready(function(){
+                
+                var contin = true;
+                
+                $("#control").hide();
+                var unique = "";
+                var socket = io();
+                $("#submit").click(function(){
+                    unique = $("input").val();
+                    if(unique !== ""){
+                        socket.emit("mobile-register", {id:unique});
+                    }
+                });
+                
+                socket.on('start', function(data) {
+                    $("#starter").hide();
+                    $("#control").show();
+                });
+                
+                var timeout = "";
+                $("#buttons").unbind();
+                $(document).on("touchstart mousedown", "#buttons", function(){
+                        
+                        if(contin === true){
+                            contin = false;
+                            var name = $(this).attr("name");
+
+                            timeout = setInterval(function(){
+
+                                socket.emit("display", {action:name});
+                            }, 10);
+
+                            return false;   
+                        }
+                                            
+                    
+                });
+                $(document).on("touchend mouseup", "#buttons", function(){
+                    contin = true;
+                    clearInterval(timeout);
+                    return false;
+                });
+                
+                
+            });
+        </script>
+        <div id='starter'>
+            <h1>Connect with your Desktop using the unique code!</h1>
+            <input type='text' placeholder='Unique ID'/>
+            <button id='submit'>Submit</button>
+        </div>
+        
+        <div id='control'>
+            <div id='buttons' name='up'>
+                <h1 name='up'>Up</h1>
+            </div>
+            <div id='buttons' name='left'>
+                <h1 name='left'>Left</h1>
+            </div>
+            <div id='buttons' name='right'>
+                <h1 name='right'>Right</h1>
+            </div>
+            <div id='buttons' name='down'>
+                <h1 name='down'>Down</h1>
+            </div>
+        </div>
+    </body>
+</html>

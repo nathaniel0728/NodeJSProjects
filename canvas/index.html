@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> <!--320-->
+        <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+        <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+        <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+        <link rel="stylesheet" href="/resources/demos/style.css">
+        <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700italic,300italic,300' rel='stylesheet' type='text/css'>
+    </head>
+    <style>
+        
+        html,body{
+            margin:0 auto; 
+            width:100%;
+            height:100%;
+            text-align:center;
+        }
+        #info{
+            text-align:left;
+            margin-left:20px;
+        }
+        #canvas{
+            -webkit-transform-origin: 0 0;
+            border:1px solid black;
+        }
+        #online{
+            list-style-type:none;  
+            display:inline-block;
+            margin:4px;
+        }
+        #online li{
+            font-size:25px;   
+        }
+    </style>
+    
+    <script>
+        function getRandomColor() {
+            var letters = '0123456789ABCDEF'.split('');
+            var color = '#';
+            for (var i = 0; i < 6; i++ ) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+        $(document).ready(function(){
+            
+            var socket = io();
+            var user = "";
+            var users = {};
+            var color = "";
+            
+            socket.on("updateUsers", function(data){
+                users = data; 
+                var c=document.getElementById("canvas");
+                var rect = c.getBoundingClientRect();
+                var ctx=c.getContext("2d");
+                ctx.clearRect(0,0,c.width, c.height);
+                $("#online").empty();
+                for(var i in users){
+                        $("#online").append("<li name='" + i + "'>" + i + "</li>");
+                        $("#online li[name=" + i + "]").css("color", users[i]);
+                       
+                }
+            });
+            
+            socket.on("disconnect-users", function(data){
+                users = data; 
+                $("#online").empty();
+                for(var i in users){
+                        $("#online").append("<li name='" + i + "'>" + i + "</li>");
+                        $("#online li[name=" + i + "]").css("color", users[i]);
+                       
+                }
+            });
+            
+            socket.on("announce", function(data){
+                $("#online").append("<li name='" + data.name + "'>" + data.name + "</li>");
+                $("#online li[name=" + data.name + "]").css("color", data.color);
+            });
+            
+            socket.on("displayUsers", function(data){
+                var c=document.getElementById("canvas");
+                var rect = c.getBoundingClientRect();
+                var ctx=c.getContext("2d");
+                //ctx.clearRect(0,0,c.width, c.height); 
+                
+                var x = data.x;
+                var y = data.y;
+                ctx.fillStyle = data.color;
+                if(data.color === "#FFFFFF")
+                    ctx.fillRect(x, y, 20, 20);
+                else
+                    ctx.fillRect(x, y, 5, 5);       
+            });
+            
+            
+            $( "#canvas" ).mousemove(function( event ) {
+               // msg += event.pageX + ", " + event.pageY;
+                if(user != "" && event.which===1){
+                    var c=document.getElementById("canvas");
+                    var rect = c.getBoundingClientRect();
+                    var ctx=c.getContext("2d");
+                    //ctx.clearRect(0,0,c.width, c.height); 
+                    
+                    var x = event.pageX - rect.left;
+                    var y = event.pageY - rect.top - 5;
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, 5, 5);
+
+                    socket.emit('mouseloc', {name:user, x:x, y:y, color:color});
+                }else if(user != "" && event.ctrlKey){
+                    var c=document.getElementById("canvas");
+                    var rect = c.getBoundingClientRect();
+                    var ctx=c.getContext("2d");
+                    //ctx.clearRect(0,0,c.width, c.height); 
+                    
+                    var x = event.pageX - rect.left;
+                    var y = event.pageY - rect.top - 5;
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.fillRect(x, y, 20, 20);
+
+                    socket.emit('mouseloc', {name:user, x:x, y:y, color:"#FFFFFF"}); 
+                    
+                }
+            });
+            
+            $("#submit").click(function(){
+                user = $("#name").val();
+                if(!(user in users) && user != ""){
+                    
+                    var c=document.getElementById("canvas");
+                    var rect = c.getBoundingClientRect();
+                    var ctx=c.getContext("2d");
+                    
+                    color = getRandomColor();
+                    $("#submit").attr("disabled", "disabled");
+                    $("#name").val("");
+                    socket.emit("addUser", {name:user, color:color});
+                }else{
+                    alert('Pls choose unique');   
+                }
+            });
+        });
+        
+    </script>
+    
+    <body>
+        
+        <!--
+        <form id="getName" style='font-family:"Source Sans Pro"'>
+            <h3>To participate in the chat, input a name.</h3>
+            <label>Name:</label>
+            <input type="text" id="name" placeholder='Name'>
+            <button id='save'>Save Name</button>
+        </form>
+
+        -->
+        
+        <script>
+            /*
+            $( "#getName" ).dialog({
+                open: function() {
+                    
+                },
+                modal:true,
+                closeOnEscape: false,
+            });
+            */
+        </script>
+        
+        <div id='info'>  
+            <h2>Online Users</h2>
+            <ul id='online'>
+            </ul>
+        </div>
+        <canvas id="canvas" width="1000" height='500'>
+        </canvas><br>
+        <input type='text' id='name' placeholder='Name' />
+        <button id='submit'>Submit</button><br>
+        <h2>INSTRUCTIONS</h2>
+        <p>After submitting your name, hold onto left click to start drawing. If you want to erase, hold onto CTRL.</p>
+    </body>
+</html>

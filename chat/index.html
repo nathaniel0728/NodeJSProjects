@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> <!--320-->
+        <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+        <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+        <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+        <link rel="stylesheet" href="/resources/demos/style.css">
+        <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700italic,300italic,300' rel='stylesheet' type='text/css'>
+        
+        <style>
+            .ui-dialog-titlebar-close {
+              visibility: hidden;
+            }
+            html,body{
+                margin:0 auto;
+                height:100%;
+                font-family:"Source Sans Pro";
+            }
+            #chat{
+                border:4px solid lightblue;
+                background-color:lightblue;
+                border-radius:15px;
+                margin:10px;
+                padding:15px;
+                display:inline-block;
+            }
+            #announce{
+                background-color:#CCCCCC;
+                margin:10px;
+                padding:15px;
+            }
+            /*
+            #chat:nth-child(odd){
+                background-color:#CCCCCC;
+            }
+            */
+            #info{
+                margin:0 auto;
+                text-align:left;
+                width:70%;
+            }
+            #info #online{
+                width:70%;
+                text-align:left;
+            }
+            #info #online li{
+                display:inline-block; 
+                font-size:15px;
+                margin:1%;
+                text-decoration:underline;
+            }
+            #messages{
+                margin:0 auto;
+                height:75%;
+                width:70%;
+                border:1px solid black;
+                overflow:auto;
+                text-align:center;
+            }
+            #input{
+                height:10%;
+                margin:0 auto;
+                width:70%;
+                border-radius:4px;
+                text-align:center;
+            }
+            #input #message{
+                margin:0 auto;
+                margin-top:10px;
+                width:70%;
+                height:50%;
+                background-color:#CCCCCC;
+                font-size:100%;
+            }
+            #input button{
+                height:60%;
+                border-radius:4px;
+            }
+            @media only screen and (max-device-width: 480px){
+                #messages, #info, #input{
+                    width:100%;   
+                }
+                #input #name{
+                    font-size:1%;   
+                }
+                #input #message{
+                    font-size:1%;
+                    width:40%;
+                    height:50%;
+                    background-color:#CCCCCC;
+                }    
+            }
+        </style>
+    </head>
+    <body>
+        
+        <script>
+            
+            $(document).ready(function(){
+                
+                
+                var usernames = [];
+                var user = "";
+                var socket = io();
+                
+                function updateUsers(){
+                    $("ul").empty();
+                    for(var i = 0; i < usernames.length; i++){
+                        $("#online").append("<li>" + usernames[i] + "</li>"); 
+                    }
+                }
+                function updateChat(name, message){
+                    if(name===user){
+                        $("#messages").append($("<div style='text-align:right'>'<div id='chat'><b>" + name + "</b>: " + message + "</div></div>")); 
+                    }else{
+                        $("#messages").append($("<div style='text-align:left'>'<div id='chat' style='text-align:left;border:4px solid #ff9999;background-color:#ff9999;'><b>" + name + "</b>: " + message + "</div></div>")); 
+                    }  
+                    var objDiv = document.getElementById("messages");
+                    objDiv.scrollTop = objDiv.scrollHeight;   
+                }
+                function announce(username){
+                    $('#messages').append($("<div id='announce'><i><b>" + username + "</b> has connected.</div>"));
+                    var objDiv = document.getElementById("messages");
+                    objDiv.scrollTop = objDiv.scrollHeight;
+                }
+                function denounce(username){
+                    $('#messages').append($("<div id='announce'><i><b>" + username + "</b> has disconnected.</div>"));
+                    var objDiv = document.getElementById("messages");
+                    objDiv.scrollTop = objDiv.scrollHeight;
+                }
+                
+                
+                socket.on('user-update', function(data){
+                    usernames = data;
+                    updateUsers();
+                });
+  
+                $("#message").attr("disabled", "true");
+                $("#submit").attr("disabled", "true");
+                
+                $("#save").click(function(){
+                    var usertemp = $("#name").val();
+                    if(usertemp!="" && usernames.indexOf(usertemp) === -1){
+                        user = usertemp;
+                        socket.emit("save-user", usertemp);
+                        $("#message").removeAttr("disabled");
+                        $("#submit").removeAttr("disabled");
+                        $("#save").attr("disabled", "true");
+                        $("#name").attr("disabled", "true");
+                        $("#getName").dialog("close"); 
+                    }else{
+                        alert('Choose a unique name!');    
+                    }
+                });
+                
+                $("#submit").click(function(){
+                    var name = user;
+                    var message = $("#message").val();
+                    if(message != ""){
+                        socket.emit("chat", {name:name, message:message});
+                        $("#message").val("");
+                    }
+                });
+                //enter button...
+                $("html").keyup(function(event){
+                    if(event.keyCode == 13){
+                        $("#submit").click();
+                    }
+                });
+
+                socket.on('chat', function(data){
+                     updateChat(data.name, data.message);
+                });
+                
+                socket.on('user-update', function(data){
+                    usernames = data;
+                });
+                socket.on('announce', function(data){
+                    announce(data); 
+                });
+                socket.on('denounce', function(data){
+                    denounce(data); 
+                });
+            });
+
+        </script>
+        <style>
+            #getName *{
+                margin:3%;   
+            }
+        </style>
+        <form id="getName" style='font-family:"Source Sans Pro"'>
+            <h3>To participate in the chat, input a name.</h3>
+            <label>Name:</label>
+            <input type="text" id="name" placeholder='Name'>
+            <button id='save'>Save Name</button>
+        </form>
+        
+        <script>
+            $( "#getName" ).dialog({
+                open: function() {
+                    
+                },
+                modal:true,
+                closeOnEscape: false,
+            });
+        </script>
+        
+        <div id='info'>  
+            <h2>Online Users</h2>
+            <ul id='online'>
+            </ul>
+        </div>
+        <div id='messages'></div>
+        <div id='input'>
+            <input id='message' placeholder='Message'/>
+            <button id='submit'>Submit</button>     
+        </div>
+    </body>
+</html>
